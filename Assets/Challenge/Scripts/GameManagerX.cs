@@ -4,9 +4,12 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public class GameManagerX : MonoBehaviour
 {
+    public static GameManagerX Instance;
+    
     public TextMeshProUGUI scoreText;
     public TextMeshProUGUI timeText;
     public TextMeshProUGUI gameOverText;
@@ -23,7 +26,12 @@ public class GameManagerX : MonoBehaviour
     private float spaceBetweenSquares = 2.5f; 
     private float minValueX = -3.75f; //  x value of the center of the left-most square
     private float minValueY = -3.75f; //  y value of the center of the bottom-most square
-    
+
+    private void Awake()
+    {
+        Instance = this;
+    }
+
     public void StartGame(int difficulty)
     {
         spawnRate /= difficulty;
@@ -31,7 +39,7 @@ public class GameManagerX : MonoBehaviour
         StartCoroutine(SpawnTarget());
         StartCoroutine(TimeUpdate());
         score = 0;
-        time = 0;
+        time = 60;
         UpdateScore(0);
         titleScreen.SetActive(false);
     }
@@ -42,7 +50,6 @@ public class GameManagerX : MonoBehaviour
         {
             yield return new WaitForSeconds(1);
             UpdateTime();
-
         }
     }
     
@@ -51,22 +58,43 @@ public class GameManagerX : MonoBehaviour
         while (isGameActive)
         {
             yield return new WaitForSeconds(spawnRate);
-            int index = Random.Range(0, 5);
+            int index = Random.Range(0, 4);
 
             if (isGameActive)
             {
                 Instantiate(targetPrefabs[index], RandomSpawnPosition(), targetPrefabs[index].transform.rotation);
             }
-            
         }
     }
     
     Vector3 RandomSpawnPosition()
     {
-        float spawnPosX = minValueX + (RandomSquareIndex() * spaceBetweenSquares);
-        float spawnPosY = minValueY + (RandomSquareIndex() * spaceBetweenSquares);
+        bool isObj = true;
 
-        Vector3 spawnPosition = new Vector3(spawnPosX, spawnPosY, 0);
+        float spawnPosX;
+        float spawnPosY;
+
+        Vector3 spawnPosition;
+        
+        do
+        {
+            spawnPosX = minValueX + (RandomSquareIndex() * spaceBetweenSquares);
+            spawnPosY = minValueY + (RandomSquareIndex() * spaceBetweenSquares);
+
+            spawnPosition = new Vector3(spawnPosX, spawnPosY, 0);
+            
+            Collider[] colliders = Physics.OverlapSphere(spawnPosition, 0.1f);
+            
+            if (colliders.Length > 0)
+            {
+                isObj = true;
+            }
+            else
+            {
+                isObj = false;
+            }
+        } while (isObj);
+        
         return spawnPosition;
 
     }
@@ -85,6 +113,7 @@ public class GameManagerX : MonoBehaviour
     public void UpdateTime()
     {
         time -= 1;
+        timeText.text = "Time: " + time;
         if(time == 0)
         {
             GameOver();
